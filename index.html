@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>日本語カード — Japanese Flashcards</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Zen+Maru+Gothic:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root{
+    --washi:#f2ece0;
+    --washi-dark:#e8dfcc;
+    --sumi:#2b2622;
+    --sumi-soft:#5a5248;
+    --aka:#b5462f;
+    --aka-deep:#8f351f;
+    --ai:#2e5266;
+    --ai-soft:#4d7a91;
+    --matcha:#6f7a3a;
+    --gold:#c79a3f;
+    --card-shadow: 0 1px 2px rgba(43,38,34,0.08), 0 8px 24px rgba(43,38,34,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, rgba(181,70,47,0.05), transparent 55%),
+      radial-gradient(ellipse at bottom right, rgba(46,82,102,0.06), transparent 55%),
+      var(--washi);
+    color:var(--sumi);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  header{
+    text-align:center;
+    margin-bottom:22px;
+    position:relative;
+  }
+  .kanji-mark{
+    font-family:'Noto Serif JP', serif;
+    font-size:15px;
+    letter-spacing:0.4em;
+    color:var(--aka);
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  h1{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-size:clamp(28px,6vw,40px);
+    margin:6px 0 4px;
+    font-weight:700;
+    color:var(--sumi);
+  }
+  .sub{
+    color:var(--sumi-soft);
+    font-size:14px;
+  }
+
+  /* Topic picker */
+  .topic-scroll{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:6px 2px 14px;
+    margin-bottom:6px;
+    scrollbar-width:thin;
+  }
+  .topic-pill{
+    flex:0 0 auto;
+    padding:9px 16px;
+    border-radius:999px;
+    border:1.5px solid var(--washi-dark);
+    background:#fffdf8;
+    color:var(--sumi-soft);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .topic-pill:hover{border-color:var(--ai-soft);color:var(--ai);}
+  .topic-pill.active{
+    background:var(--sumi);
+    border-color:var(--sumi);
+    color:var(--washi);
+  }
+  .topic-pill .count{
+    opacity:0.6;
+    font-weight:500;
+    margin-left:4px;
+    font-size:11px;
+  }
+
+  /* Progress */
+  .progress-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:16px 2px 14px;
+    font-size:13px;
+    color:var(--sumi-soft);
+    font-weight:500;
+  }
+  .progress-track{
+    flex:1;
+    height:4px;
+    background:var(--washi-dark);
+    border-radius:2px;
+    margin:0 14px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--aka), var(--gold));
+    width:0%;
+    transition:width .3s ease;
+  }
+
+  /* Card */
+  .stage{
+    perspective:1600px;
+    margin:0 auto 20px;
+    max-width:560px;
+  }
+  .card{
+    position:relative;
+    height:320px;
+    cursor:pointer;
+    transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.2,.8,.2,1);
+  }
+  .card.flipped{transform:rotateY(180deg);}
+  .card.no-anim{transition:none !important;}
+  .face{
+    position:absolute;
+    inset:0;
+    backface-visibility:hidden;
+    border-radius:20px;
+    box-shadow:var(--card-shadow);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:28px;
+    text-align:center;
+    border:1px solid rgba(43,38,34,0.06);
+  }
+  .face-front{
+    background:#fffdf9;
+    background-image:
+      linear-gradient(180deg, rgba(181,70,47,0.03), transparent 40%);
+  }
+  .face-back{
+    background:var(--sumi);
+    color:var(--washi);
+    transform:rotateY(180deg);
+  }
+  .face-front::before{
+    content:'';
+    position:absolute;
+    top:16px;left:16px;right:16px;bottom:16px;
+    border:1px solid rgba(181,70,47,0.18);
+    border-radius:12px;
+    pointer-events:none;
+  }
+  .face-back::before{
+    content:'';
+    position:absolute;
+    top:16px;left:16px;right:16px;bottom:16px;
+    border:1px solid rgba(242,236,224,0.15);
+    border-radius:12px;
+    pointer-events:none;
+  }
+  .tag{
+    position:absolute;
+    top:26px;
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    font-weight:700;
+  }
+  .face-front .tag{color:var(--aka);}
+  .face-back .tag{color:var(--gold);}
+
+  .jp{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-size:clamp(34px,8vw,52px);
+    font-weight:700;
+    line-height:1.25;
+    margin:0;
+  }
+  .reading{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    color:var(--sumi-soft);
+    margin-top:10px;
+    letter-spacing:0.02em;
+  }
+  .en{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-size:clamp(24px,6vw,32px);
+    font-weight:500;
+    line-height:1.3;
+  }
+  .romaji-back{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    font-weight:500;
+    letter-spacing:0.02em;
+    color:var(--gold);
+    margin-top:8px;
+    font-style:italic;
+  }
+  .note{
+    font-size:12.5px;
+    color:rgba(242,236,224,0.65);
+    margin-top:10px;
+    max-width:80%;
+    line-height:1.5;
+  }
+  .flip-hint{
+    position:absolute;
+    bottom:18px;
+    font-size:11px;
+    color:var(--sumi-soft);
+    opacity:0.55;
+    letter-spacing:0.05em;
+  }
+  .face-back .flip-hint{color:rgba(242,236,224,0.5);}
+
+  /* Controls */
+  .controls{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    margin-top:4px;
+  }
+  .ctrl-btn{
+    border:none;
+    background:#fffdf8;
+    border:1.5px solid var(--washi-dark);
+    width:46px;height:46px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    color:var(--sumi);
+    transition:all .15s ease;
+    box-shadow:0 1px 2px rgba(43,38,34,0.06);
+  }
+  .ctrl-btn:hover{background:var(--sumi);color:var(--washi);border-color:var(--sumi);}
+  .ctrl-btn:active{transform:scale(0.93);}
+  .ctrl-btn svg{width:18px;height:18px;}
+
+  .know-row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-top:16px;
+  }
+  .know-btn{
+    flex:1;
+    max-width:220px;
+    padding:12px 10px;
+    border-radius:12px;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .know-btn.no{
+    background:#fdf1ee;
+    color:var(--aka-deep);
+    border:1.5px solid rgba(181,70,47,0.25);
+  }
+  .know-btn.no:hover{background:#f9e0da;}
+  .know-btn.yes{
+    background:#eef3ea;
+    color:var(--matcha);
+    border:1.5px solid rgba(111,122,58,0.28);
+  }
+  .know-btn.yes:hover{background:#e1ebd9;}
+  .know-btn:active{transform:scale(0.97);}
+
+  .shuffle-row{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-top:20px;
+  }
+  .text-btn{
+    background:none;
+    border:none;
+    color:var(--ai);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    padding:6px 10px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .text-btn:hover{color:var(--ai-soft);text-decoration:underline;}
+  .text-btn svg{width:14px;height:14px;}
+
+  /* Mode switch */
+  .mode-switch{
+    display:flex;
+    justify-content:center;
+    gap:4px;
+    background:var(--washi-dark);
+    border-radius:12px;
+    padding:4px;
+    max-width:280px;
+    margin:0 auto 18px;
+  }
+  .mode-btn{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:9px 14px;
+    border-radius:9px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    color:var(--sumi-soft);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .mode-btn.active{
+    background:#fffdf8;
+    color:var(--sumi);
+    box-shadow:0 1px 3px rgba(43,38,34,0.12);
+  }
+  .mode-btn:hover:not(.active){color:var(--sumi);}
+
+  /* Quiz */
+  .quiz-wrap{
+    max-width:560px;
+    margin:0 auto;
+  }
+  .quiz-card{
+    background:#fffdf9;
+    border-radius:20px;
+    box-shadow:var(--card-shadow);
+    border:1px solid rgba(43,38,34,0.06);
+    padding:34px 28px;
+    text-align:center;
+    position:relative;
+  }
+  .quiz-tag{
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:var(--aka);
+    display:block;
+    margin-bottom:14px;
+  }
+  .quiz-prompt{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-size:clamp(26px,7vw,36px);
+    font-weight:700;
+    line-height:1.3;
+    color:var(--sumi);
+    margin:0 0 4px;
+    min-height:1.3em;
+  }
+  .quiz-prompt-sub{
+    font-size:13px;
+    color:var(--sumi-soft);
+    margin-bottom:8px;
+  }
+  .quiz-options{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    margin-top:22px;
+  }
+  .quiz-option{
+    text-align:left;
+    padding:14px 16px;
+    border-radius:12px;
+    border:1.5px solid var(--washi-dark);
+    background:#fffdf8;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    font-weight:500;
+    color:var(--sumi);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .quiz-option:hover:not(:disabled){border-color:var(--ai-soft);background:#f7f9fa;}
+  .quiz-option:disabled{cursor:default;}
+  .quiz-option.correct{
+    background:#eef3ea;
+    border-color:var(--matcha);
+    color:var(--matcha);
+    font-weight:700;
+  }
+  .quiz-option.incorrect{
+    background:#fdf1ee;
+    border-color:var(--aka);
+    color:var(--aka-deep);
+    font-weight:700;
+  }
+  .quiz-feedback{
+    margin-top:16px;
+    font-size:13.5px;
+    font-weight:600;
+    min-height:1.4em;
+  }
+  .quiz-feedback.correct{color:var(--matcha);}
+  .quiz-feedback.incorrect{color:var(--aka-deep);}
+  .quiz-next-btn{
+    margin-top:16px;
+    background:var(--sumi);
+    color:var(--washi);
+    border:none;
+    padding:11px 26px;
+    border-radius:999px;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;
+    display:none;
+  }
+  .quiz-next-btn.show{display:inline-block;}
+  .quiz-score-row{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    margin-bottom:16px;
+    font-size:13px;
+    color:var(--sumi-soft);
+    font-weight:600;
+  }
+  .quiz-score-row .right{color:var(--matcha);}
+  .quiz-score-row .wrong{color:var(--aka-deep);}
+
+  .done-banner{
+    text-align:center;
+    padding:36px 20px;
+    background:#fffdf8;
+    border-radius:18px;
+    box-shadow:var(--card-shadow);
+    border:1px solid rgba(43,38,34,0.06);
+  }
+  .done-banner h2{
+    font-family:'Zen Maru Gothic',sans-serif;
+    color:var(--sumi);
+    margin:0 0 6px;
+  }
+  .done-banner p{color:var(--sumi-soft);font-size:14px;margin:0 0 18px;}
+  .done-stats{
+    display:flex;
+    gap:24px;
+    justify-content:center;
+    margin-bottom:18px;
+  }
+  .stat{
+    text-align:center;
+  }
+  .stat .num{font-size:26px;font-weight:700;font-family:'Zen Maru Gothic',sans-serif;}
+  .stat.hard .num{color:var(--aka);}
+  .stat.easy .num{color:var(--matcha);}
+  .stat .lbl{font-size:11px;color:var(--sumi-soft);text-transform:uppercase;letter-spacing:0.06em;}
+  .restart-btn{
+    background:var(--sumi);
+    color:var(--washi);
+    border:none;
+    padding:12px 26px;
+    border-radius:999px;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .restart-btn:hover{background:var(--aka-deep);}
+
+  footer{
+    text-align:center;
+    margin-top:34px;
+    font-size:11.5px;
+    color:var(--sumi-soft);
+    opacity:0.6;
+  }
+
+  @media (max-width:480px){
+    .card{height:300px;}
+    .know-btn{font-size:12.5px;padding:11px 6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kanji-mark">日本語 復習カード</div>
+    <h1>Flashcards</h1>
+    <div class="sub" id="subLine">Tap a card to flip it. Sort yourself into knows / needs work.</div>
+  </header>
+
+  <div class="mode-switch">
+    <button class="mode-btn active" id="modeCardsBtn">Flashcards</button>
+    <button class="mode-btn" id="modeQuizBtn">Quiz</button>
+  </div>
+
+  <div class="topic-scroll" id="topicScroll"></div>
+
+  <div id="cardsMode">
+  <div class="progress-row">
+    <span id="progressLabel">1 / 1</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span id="topicLabel">—</span>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="card" id="card">
+      <div class="face face-front">
+        <span class="tag" id="tagFront">TOPIC</span>
+        <p class="jp" id="jpText">—</p>
+        <div class="flip-hint">tap to flip ↻</div>
+      </div>
+      <div class="face face-back">
+        <span class="tag" id="tagBack">MEANING</span>
+        <div class="en" id="enText">—</div>
+        <div class="romaji-back" id="romajiText"></div>
+        <div class="note" id="noteText"></div>
+        <div class="flip-hint">tap to flip ↻</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="prevBtn" title="Previous">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button class="ctrl-btn" id="flipBtn" title="Flip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a9 9 0 0 1-9 9 9 9 0 0 1-6-2.3"></path></svg>
+    </button>
+    <button class="ctrl-btn" id="nextBtn" title="Next">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+  </div>
+
+  <div class="know-row">
+    <button class="know-btn no" id="needWorkBtn">Still learning</button>
+    <button class="know-btn yes" id="knowBtn">Know it ✓</button>
+  </div>
+
+  <div class="shuffle-row">
+    <button class="text-btn" id="shuffleBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+      Shuffle
+    </button>
+    <button class="text-btn" id="reviewHardBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      Review "still learning" only
+    </button>
+  </div>
+
+  <div class="done-banner" id="doneBanner" style="display:none;">
+    <h2>お疲れ様でした！ Deck complete</h2>
+    <p>Here's how this round went.</p>
+    <div class="done-stats">
+      <div class="stat easy"><div class="num" id="easyCount">0</div><div class="lbl">Know it</div></div>
+      <div class="stat hard"><div class="num" id="hardCount">0</div><div class="lbl">Still learning</div></div>
+    </div>
+    <button class="restart-btn" id="restartBtn">Go again</button>
+  </div>
+  </div>
+
+  <div id="quizMode" style="display:none;">
+    <div class="quiz-wrap">
+      <div class="progress-row">
+        <span id="quizProgressLabel">1 / 1</span>
+        <div class="progress-track"><div class="progress-fill" id="quizProgressFill"></div></div>
+        <span id="quizTopicLabel">—</span>
+      </div>
+
+      <div class="quiz-score-row">
+        <span class="right" id="quizRightCount">✓ 0</span>
+        <span class="wrong" id="quizWrongCount">✗ 0</span>
+      </div>
+
+      <div class="quiz-card">
+        <div class="quiz-prompt-sub" id="quizPromptSub">What does this mean?</div>
+        <p class="quiz-prompt" id="quizPrompt">—</p>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-feedback" id="quizFeedback"></div>
+        <button class="quiz-next-btn" id="quizNextBtn">Next →</button>
+      </div>
+
+      <div class="shuffle-row">
+        <button class="text-btn" id="quizDirectionBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a9 9 0 0 1-9 9 9 9 0 0 1-6-2.3"></path></svg>
+          Switch direction
+        </button>
+      </div>
+    </div>
+
+    <div class="done-banner" id="quizDoneBanner" style="display:none;">
+      <h2>クイズ終了！ Quiz complete</h2>
+      <p>Here's your score for this round.</p>
+      <div class="done-stats">
+        <div class="stat easy"><div class="num" id="quizFinalRight">0</div><div class="lbl">Correct</div></div>
+        <div class="stat hard"><div class="num" id="quizFinalWrong">0</div><div class="lbl">Incorrect</div></div>
+      </div>
+      <button class="restart-btn" id="quizRestartBtn">Go again</button>
+    </div>
+  </div>
+
+  <footer>Built from your VERBS, ADJECTIVES, Likes &amp; Dislikes, Family, Animals, Classroom, Activities, and Days of the Week notes</footer>
+</div>
+
+<script>
+// ---------- DATA ----------
+const decks = {
+  "Verbs": [
+    {jp:"（に）いきます", romaji:"(ni) ikimasu", en:"to go", note:"Takes particle に (goes TO a place/activity). Ex: まちに いきます — I'm going to town."},
+    {jp:"（を）します", romaji:"(wo) shimasu", en:"to do / to play", note:"Takes particle を. Ex: からてを します — I do karate."},
+    {jp:"（を）みます", romaji:"(wo) mimasu", en:"to watch / to see", note:"Object marked with を."},
+    {jp:"（を）ききます", romaji:"(wo) kikimasu", en:"to listen / to hear", note:"Object marked with を."},
+    {jp:"（を）ひきます", romaji:"(wo) hikimasu", en:"to play (key or string instruments)", note:"e.g. piano, guitar, violin."},
+    {jp:"（を）よみます", romaji:"(wo) yomimasu", en:"to read", note:"Object marked with を."},
+    {jp:"（を）ならいます", romaji:"(wo) naraimasu", en:"to learn", note:"Ex: しょどうを ならいます — I learn calligraphy."},
+    {jp:"（を）べんきょうします", romaji:"(wo) benkyou shimasu", en:"to study", note:"べんきょう = study (noun) + します."},
+    {jp:"（を）れんしゅうします", romaji:"(wo) renshuu shimasu", en:"to practise", note:"れんしゅう = practice (noun) + します."},
+    {jp:"（を）ふきます", romaji:"(wo) fukimasu", en:"to play (wind or brass instruments)", note:"e.g. flute, trumpet."},
+    {jp:"Object を verb", romaji:"object wo verb", en:"the basic verb-with-object pattern", note:"The object of the verb is marked by particle を, placed before the verb."},
+    {jp:"Place / Activity に いきます", romaji:"...ni ikimasu", en:"go TO a place / go to do an activity", note:"いきます is an exception — it takes に, not を. Ex: かいものに いきます — I go shopping."},
+  ],
+
+  "Adjectives": [
+    {jp:"い adjectives", romaji:"i-keiyoushi", en:"adjectives ending in い", note:"Link directly to a noun with no particle needed. If it doesn't end in い, it can't be this type."},
+    {jp:"大きい", romaji:"ookii", en:"big", note:"わたしのうちは 大きいです — My house is big."},
+    {jp:"かわいい", romaji:"kawaii", en:"cute", note:"ぺっとは かわいいです — My pet is cute."},
+    {jp:"小さい", romaji:"chiisai", en:"small", note:"小さいまちです — It's a small town."},
+    {jp:"すごい", romaji:"sugoi", en:"great / amazing", note:"すごいおみやげですね — It's a great souvenir, isn't it?"},
+    {jp:"な adjectives", romaji:"na-keiyoushi", en:"adjectives needing な before a noun", note:"Don't need な before です. If it doesn't end in い, it must be a な adjective (with some exceptions to memorise)."},
+    {jp:"しずか（な）", romaji:"shizuka (na)", en:"quiet", note:"こうえんは しずかです → しずかな こうえんです (it's a quiet park)."},
+    {jp:"きれい（な）", romaji:"kirei (na)", en:"pretty / clean", note:"An な adjective that ends in い — one of the tricky exceptions! かわは きれいです → きれいな かわです."},
+  ],
+
+  "Likes & Dislikes": [
+    {jp:"THINGが好きですか", romaji:"...ga suki desu ka", en:"Do you like THING?", note:"Person(は) THINGが 好きですか。 Ex: やきゅうが 好きですか — Do you like baseball?"},
+    {jp:"大好きです", romaji:"daisuki desu", en:"I love it (yes, strongly)", note:"Strongest positive answer."},
+    {jp:"好きです", romaji:"suki desu", en:"I like it / I like THING", note:"Standard positive statement or answer."},
+    {jp:"まあまあ好きです", romaji:"maamaa suki desu", en:"I quite like it / so-so like it", note:"Middle-ground positive answer."},
+    {jp:"あまり好きじゃないです", romaji:"amari suki janai desu", en:"I don't like it much", note:"あまり／あんまり + negative = softened dislike."},
+    {jp:"好きじゃないです", romaji:"suki janai desu", en:"I don't like it / I don't like THING", note:"Plain negative."},
+    {jp:"きらいです", romaji:"kirai desu", en:"I dislike it", note:"Strong — can sound a little rude/blunt as an answer."},
+    {jp:"THING が 好きです pattern", romaji:"...ga suki desu", en:"(Person は) THING が 好きです — Person likes THING", note:"The liked thing is marked with が, not を."},
+  ],
+
+  "Activities in the Week": [
+    {jp:"ゲームを します", romaji:"geemu wo shimasu", en:"to play a game", note:"Most activity verbs use particle を."},
+    {jp:"えき に いきます", romaji:"eki ni ikimasu", en:"to go to the station", note:"に marks direction/destination — an exception to を."},
+    {jp:"まち", romaji:"machi", en:"town (shopping area)", note:"Place vocabulary."},
+    {jp:"ともだちのうち", romaji:"tomodachi no uchi", en:"friend's house", note:"Place vocabulary."},
+    {jp:"がっこう", romaji:"gakkou", en:"school", note:"Place vocabulary."},
+    {jp:"プール", romaji:"puuru", en:"pool", note:"Place vocabulary."},
+    {jp:"グラウンド", romaji:"guraundo", en:"school / sporting grounds", note:"Place vocabulary."},
+    {jp:"スポーツ", romaji:"supootsu", en:"sports", note:"Activity vocabulary."},
+    {jp:"サッカー", romaji:"sakkaa", en:"soccer", note:"Activity vocabulary."},
+    {jp:"ダンス", romaji:"dansu", en:"dance", note:"Activity vocabulary."},
+    {jp:"すいえい", romaji:"suiei", en:"swimming", note:"Activity vocabulary."},
+    {jp:"からて", romaji:"karate", en:"karate", note:"Activity vocabulary."},
+    {jp:"けんどう", romaji:"kendou", en:"kendo", note:"Activity vocabulary."},
+    {jp:"しょどう", romaji:"shodou", en:"calligraphy", note:"Activity vocabulary."},
+    {jp:"カラオケ", romaji:"karaoke", en:"karaoke", note:"Activity vocabulary."},
+    {jp:"まんが", romaji:"manga", en:"Japanese comics", note:"Activity vocabulary."},
+    {jp:"えいかいわ", romaji:"eikaiwa", en:"English conversation", note:"Activity vocabulary."},
+    {jp:"テレビ", romaji:"terebi", en:"television", note:"Activity vocabulary."},
+    {jp:"えいが", romaji:"eiga", en:"movie", note:"Activity vocabulary."},
+    {jp:"おんがく", romaji:"ongaku", en:"music", note:"Activity vocabulary."},
+    {jp:"ロック", romaji:"rokku", en:"rock (music)", note:"Activity vocabulary."},
+    {jp:"べんきょう（します）", romaji:"benkyou (shimasu)", en:"study / to study", note:"Activity vocabulary."},
+    {jp:"れんしゅう（します）", romaji:"renshuu (shimasu)", en:"practice / to practise", note:"Activity vocabulary."},
+    {jp:"ならいごと", romaji:"naraigoto", en:"extra-curricular activities", note:"Activity vocabulary."},
+  ],
+
+  "Days of the Week": [
+    {jp:"月ようび", romaji:"getsuyoubi", en:"Monday", note:"月 = moon."},
+    {jp:"火ようび", romaji:"kayoubi", en:"Tuesday", note:"火 = fire."},
+    {jp:"水ようび", romaji:"suiyoubi", en:"Wednesday", note:"水 = water."},
+    {jp:"木ようび", romaji:"mokuyoubi", en:"Thursday", note:"木 = wood / tree."},
+    {jp:"金ようび", romaji:"kinyoubi", en:"Friday", note:"金 = gold / metal."},
+    {jp:"土ようび", romaji:"doyoubi", en:"Saturday", note:"土 = earth / soil."},
+    {jp:"日ようび", romaji:"nichiyoubi", en:"Sunday", note:"日 = sun / day."},
+    {jp:"月", romaji:"getsu", en:"moon", note:"The kanji used in 月ようび (Monday)."},
+    {jp:"火", romaji:"ka", en:"fire", note:"The kanji used in 火ようび (Tuesday)."},
+    {jp:"水", romaji:"sui", en:"water", note:"The kanji used in 水ようび (Wednesday)."},
+    {jp:"木", romaji:"moku", en:"wood / tree", note:"The kanji used in 木ようび (Thursday)."},
+    {jp:"金", romaji:"kin", en:"gold / metal", note:"The kanji used in 金ようび (Friday)."},
+    {jp:"土", romaji:"do", en:"earth / soil", note:"The kanji used in 土ようび (Saturday)."},
+    {jp:"日", romaji:"nichi", en:"sun / day", note:"The kanji used in 日ようび (Sunday)."},
+    {jp:"なんようび", romaji:"nan'youbi", en:"what day (of the week)", note:"Used in questions: [Subject]は なんようびですか。"},
+    {jp:"しゅう", romaji:"shuu", en:"week", note:""},
+    {jp:"いっしゅうかん", romaji:"isshuukan", en:"one week", note:""},
+    {jp:"しゅうまつ", romaji:"shuumatsu", en:"weekend", note:""},
+    {jp:"きょう", romaji:"kyou", en:"today", note:"きょうは なんようびですか — What day is it today?"},
+    {jp:"あした", romaji:"ashita", en:"tomorrow", note:"あしたは 水ようびです — Tomorrow is Wednesday."},
+    {jp:"きのう...でした", romaji:"kinou...deshita", en:"yesterday (past tense)", note:"きのうは なんようびでしたか — What day was it yesterday? Uses でした (past)."},
+  ],
+
+  "Other's Family": [
+    {jp:"おとうさん", romaji:"otousan", en:"father (someone else's)", note:"Polite form used when talking about others' families."},
+    {jp:"おかあさん", romaji:"okaasan", en:"mother (someone else's)", note:""},
+    {jp:"おにいさん", romaji:"oniisan", en:"older brother (someone else's)", note:""},
+    {jp:"おねえさん", romaji:"oneesan", en:"older sister (someone else's)", note:""},
+    {jp:"おとうとさん", romaji:"otoutosan", en:"younger brother (someone else's)", note:""},
+    {jp:"いもうとさん", romaji:"imoutosan", en:"younger sister (someone else's)", note:""},
+    {jp:"おじいさん", romaji:"ojiisan", en:"grandfather (someone else's)", note:""},
+    {jp:"おばあさん", romaji:"obaasan", en:"grandmother (someone else's)", note:""},
+    {jp:"おじさん", romaji:"ojisan", en:"uncle (someone else's)", note:""},
+    {jp:"おばさん", romaji:"obasan", en:"aunt (someone else's)", note:""},
+    {jp:"いとこさん", romaji:"itokosan", en:"cousin (someone else's)", note:""},
+    {jp:"（ご）りょうしん", romaji:"(go)ryoushin", en:"parents (polite, someone else's)", note:""},
+    {jp:"Formal/Polite/Informal use", romaji:"usage note", en:"own family = plain form; other's family = ...さん form; talking TO your own family = ...さん form too", note:"Younger siblings are often just called by name instead."},
+  ],
+
+  "My Family": [
+    {jp:"ちち", romaji:"chichi", en:"father (my own)", note:"Used when talking about your own family to others."},
+    {jp:"はは", romaji:"haha", en:"mother (my own)", note:""},
+    {jp:"あに", romaji:"ani", en:"older brother (my own)", note:""},
+    {jp:"あね", romaji:"ane", en:"older sister (my own)", note:""},
+    {jp:"おとうと", romaji:"otouto", en:"younger brother (my own)", note:""},
+    {jp:"いもうと", romaji:"imouto", en:"younger sister (my own)", note:""},
+    {jp:"そふ", romaji:"sofu", en:"grandfather (my own)", note:""},
+    {jp:"そぼ", romaji:"sobo", en:"grandmother (my own)", note:""},
+    {jp:"おじ", romaji:"oji", en:"uncle (my own)", note:""},
+    {jp:"おば", romaji:"oba", en:"aunt (my own)", note:""},
+    {jp:"りょうしん", romaji:"ryoushin", en:"parents", note:""},
+    {jp:"おや", romaji:"oya", en:"parent(s)", note:""},
+    {jp:"いとこ", romaji:"itoko", en:"cousin (my own)", note:""},
+    {jp:"しんせき", romaji:"shinseki", en:"relative", note:""},
+    {jp:"こども／こ", romaji:"kodomo / ko", en:"child", note:""},
+    {jp:"あかちゃん", romaji:"akachan", en:"baby", note:""},
+    {jp:"（ご）かぞく", romaji:"(go)kazoku", en:"family", note:"ごかぞくは だれとだれですか — Who is in your family? Use と to list members."},
+  ],
+
+  "Describing People": [
+    {jp:"ともだち", romaji:"tomodachi", en:"friend", note:"ともだちの［Name］さんです — This is my friend, ___."},
+    {jp:"おもしろい", romaji:"omoshiroi", en:"interesting", note:""},
+    {jp:"あかるい", romaji:"akarui", en:"bright / cheerful", note:""},
+    {jp:"やさしい", romaji:"yasashii", en:"kind / gentle", note:""},
+    {jp:"いい", romaji:"ii", en:"good", note:""},
+    {jp:"あたまがいい", romaji:"atama ga ii", en:"intelligent", note:"Literally 'head is good'."},
+    {jp:"たのしい", romaji:"tanoshii", en:"enjoyable / fun", note:""},
+    {jp:"かわいい", romaji:"kawaii", en:"cute", note:""},
+    {jp:"かっこいい", romaji:"kakkoii", en:"cool / good-looking", note:"きょうやさんは かっこいいです — Kyoya is cool."},
+    {jp:"［Person］は［Adjective］です", romaji:"...wa...desu", en:"[Person] is [Adjective]", note:"The core sentence pattern for describing people, pets, and objects."},
+  ],
+
+  "Doing Activities": [
+    {jp:"（を）します", romaji:"(wo) shimasu", en:"to do / to play", note:"[Activity]をします — I do/play ___."},
+    {jp:"（を）しません", romaji:"(wo) shimasen", en:"to not do / not play", note:"Negative form of します."},
+    {jp:"テニス", romaji:"tenisu", en:"tennis", note:""},
+    {jp:"やきゅう", romaji:"yakyuu", en:"baseball", note:""},
+    {jp:"ゲーム", romaji:"geemu", en:"game", note:""},
+    {jp:"かいもの", romaji:"kaimono", en:"shopping", note:""},
+    {jp:"バスケ（ットボール）", romaji:"basuke(ttobooru)", en:"basketball", note:"Extra vocab."},
+    {jp:"バレーボール", romaji:"bareebooru", en:"volleyball", note:"Extra vocab."},
+    {jp:"クリケット", romaji:"kuriketto", en:"cricket", note:"Extra vocab."},
+    {jp:"アイススケート", romaji:"aisu sukeeto", en:"ice skating", note:"Extra vocab."},
+    {jp:"サッカー", romaji:"sakkaa", en:"soccer", note:"Extra vocab."},
+    {jp:"スポーツ", romaji:"supootsu", en:"sports", note:"Extra vocab."},
+    {jp:"[Activity]をしますか", romaji:"...wo shimasu ka", en:"Do you do/play [Activity]?", note:"Question form."},
+  ],
+
+  "Classroom Expressions": [
+    {jp:"きりつ", romaji:"kiritsu", en:"stand up", note:""},
+    {jp:"れい", romaji:"rei", en:"bow", note:""},
+    {jp:"ちゃくせき", romaji:"chakuseki", en:"sit down", note:""},
+    {jp:"みて ください", romaji:"mite kudasai", en:"please look", note:""},
+    {jp:"きいて ください", romaji:"kiite kudasai", en:"please listen", note:""},
+    {jp:"よんで ください", romaji:"yonde kudasai", en:"please read", note:""},
+    {jp:"かいて ください", romaji:"kaite kudasai", en:"please write", note:""},
+    {jp:"いって ください", romaji:"itte kudasai", en:"please say", note:""},
+    {jp:"しずかにしてください", romaji:"shizuka ni shite kudasai", en:"please be quiet", note:""},
+    {jp:"もういちど いってください", romaji:"mou ichido itte kudasai", en:"please say it one more time", note:""},
+    {jp:"ゆっくり いってください", romaji:"yukkuri itte kudasai", en:"please say it slowly", note:""},
+    {jp:"トイレにいってもいいですか", romaji:"toire ni itte mo ii desu ka", en:"May I go to the toilet?", note:""},
+    {jp:"わかります", romaji:"wakarimasu", en:"I understand", note:""},
+    {jp:"わかりません", romaji:"wakarimasen", en:"I don't understand", note:""},
+    {jp:"わかりますか", romaji:"wakarimasu ka", en:"Do you understand?", note:""},
+    {jp:"よくできました", romaji:"yoku dekimashita", en:"well done", note:""},
+    {jp:"どうぞ", romaji:"douzo", en:"here you go", note:""},
+    {jp:"おやすみ（なさい）", romaji:"oyasumi (nasai)", en:"goodnight", note:""},
+  ],
+
+  "Animals": [
+    {jp:"ねこ", romaji:"neko", en:"cat", note:""},
+    {jp:"いぬ", romaji:"inu", en:"dog", note:""},
+    {jp:"ねずみ", romaji:"nezumi", en:"mouse", note:""},
+    {jp:"とり", romaji:"tori", en:"bird", note:""},
+    {jp:"うさぎ", romaji:"usagi", en:"rabbit", note:""},
+    {jp:"さかな", romaji:"sakana", en:"fish", note:""},
+    {jp:"うし", romaji:"ushi", en:"cow", note:""},
+    {jp:"ぶた", romaji:"buta", en:"pig", note:""},
+    {jp:"ひつじ", romaji:"hitsuji", en:"sheep", note:""},
+    {jp:"へび", romaji:"hebi", en:"snake", note:""},
+    {jp:"うま", romaji:"uma", en:"horse", note:""},
+    {jp:"さる", romaji:"saru", en:"monkey", note:""},
+    {jp:"かめ", romaji:"kame", en:"turtle", note:""},
+    {jp:"ぞう", romaji:"zou", en:"elephant", note:""},
+    {jp:"ペット", romaji:"petto", en:"pet", note:""},
+    {jp:"どんな", romaji:"donna", en:"what kind of", note:"どんなペットが すきですか — What kind of pet do you like?"},
+    {jp:"［Noun］が すきです", romaji:"...ga suki desu", en:"I like [Noun]", note:""},
+    {jp:"［Noun］が きらいです", romaji:"...ga kirai desu", en:"I dislike [Noun]", note:""},
+    {jp:"［Noun］が すきですか", romaji:"...ga suki desu ka", en:"Do you like [Noun]?", note:""},
+  ],
+};
+
+// ---------- STATE ----------
+const topicNames = Object.keys(decks);
+let currentTopic = "All";
+let order = [];
+let idx = 0;
+let flipped = false;
+let stats = {}; // per-card: 'easy' | 'hard' | undefined, keyed by topic+jp
+let reviewHardMode = false;
+
+function allCards(){
+  let arr = [];
+  topicNames.forEach(t => decks[t].forEach(c => arr.push({...c, topic:t})));
+  return arr;
+}
+
+function cardKey(c){ return c.topic + "||" + c.jp; }
+
+function buildDeck(){
+  let base;
+  if(reviewHardMode){
+    base = allCards().filter(c => stats[cardKey(c)] === 'hard');
+    if(base.length === 0){ reviewHardMode = false; base = currentTopic==="All" ? allCards() : decks[currentTopic].map(c=>({...c, topic:currentTopic})); }
+  } else {
+    base = currentTopic === "All" ? allCards() : decks[currentTopic].map(c => ({...c, topic:currentTopic}));
+  }
+  order = base;
+  idx = 0;
+  flipped = false;
+  render();
+}
+
+function shuffleDeck(){
+  for(let i = order.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  idx = 0;
+  flipped = false;
+  render();
+}
+
+// ---------- RENDER ----------
+const cardEl = document.getElementById('card');
+const jpText = document.getElementById('jpText');
+const enText = document.getElementById('enText');
+const romajiText = document.getElementById('romajiText');
+const noteText = document.getElementById('noteText');
+const tagFront = document.getElementById('tagFront');
+const tagBack = document.getElementById('tagBack');
+const progressLabel = document.getElementById('progressLabel');
+const progressFill = document.getElementById('progressFill');
+const topicLabel = document.getElementById('topicLabel');
+const doneBanner = document.getElementById('doneBanner');
+const stage = document.getElementById('stage');
+const controlsAndKnow = document.querySelectorAll('.controls, .know-row, .shuffle-row');
+
+function renderContent(){
+  if(order.length === 0){
+    jpText.textContent = "—";
+    enText.textContent = "No cards yet";
+    romajiText.textContent = "";
+    noteText.textContent = "";
+    return;
+  }
+  if(idx >= order.length) return;
+
+  const c = order[idx];
+  jpText.textContent = c.jp;
+  enText.textContent = c.en;
+  romajiText.textContent = c.romaji || "";
+  noteText.textContent = c.note || "";
+  tagFront.textContent = c.topic;
+  tagBack.textContent = c.topic;
+}
+
+function renderChrome(){
+  if(order.length === 0) return;
+  if(idx >= order.length){
+    showDone();
+    return;
+  }
+  doneBanner.style.display = 'none';
+  stage.style.display = '';
+  controlsAndKnow.forEach(el => el.style.display = '');
+
+  progressLabel.textContent = `${idx+1} / ${order.length}`;
+  progressFill.style.width = `${((idx)/order.length)*100}%`;
+  topicLabel.textContent = reviewHardMode ? "Review mode" : currentTopic;
+}
+
+// Full render: used when jumping decks / restarting, where an instant (non-animated)
+// reset to the front face is correct and there's no risk of a mid-flip flash.
+function render(){
+  cardEl.classList.remove('no-anim');
+  flipped = false;
+  cardEl.classList.add('no-anim');
+  cardEl.classList.remove('flipped');
+  renderContent();
+  renderChrome();
+  // force reflow so the no-anim class takes effect before we remove it
+  void cardEl.offsetWidth;
+  cardEl.classList.remove('no-anim');
+}
+
+function showDone(){
+  stage.style.display = 'none';
+  controlsAndKnow.forEach(el => el.style.display = 'none');
+  doneBanner.style.display = '';
+  progressFill.style.width = '100%';
+  progressLabel.textContent = `${order.length} / ${order.length}`;
+
+  const relevantKeys = order.map(cardKey);
+  let easy = 0, hard = 0;
+  relevantKeys.forEach(k => {
+    if(stats[k] === 'easy') easy++;
+    else if(stats[k] === 'hard') hard++;
+  });
+  document.getElementById('easyCount').textContent = easy;
+  document.getElementById('hardCount').textContent = hard;
+}
+
+// Advance to a new card. If the current card is flipped, we flip it back to
+// front first and only swap the text content once that flip-back animation
+// has actually finished — this is what prevents the old "flash of the answer"
+// bug, where content was swapped instantly while the card was still mid-rotation.
+function goToCard(newIdx){
+  if(newIdx < 0 || newIdx > order.length) return;
+
+  const finish = () => {
+    idx = newIdx;
+    renderContent();
+    renderChrome();
+  };
+
+  if(flipped){
+    flipped = false;
+    cardEl.classList.remove('flipped');
+    let done = false;
+    const onEnd = (e) => {
+      if(e.propertyName !== 'transform') return;
+      if(done) return;
+      done = true;
+      cardEl.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    cardEl.addEventListener('transitionend', onEnd);
+    // Safety fallback in case transitionend doesn't fire (e.g. tab was backgrounded)
+    setTimeout(() => { if(!done){ done = true; cardEl.removeEventListener('transitionend', onEnd); finish(); } }, 550);
+  } else {
+    finish();
+  }
+}
+
+function next(){
+  if(idx < order.length){
+    goToCard(idx + 1);
+  }
+}
+function prev(){
+  if(idx > 0){
+    goToCard(idx - 1);
+  }
+}
+function flip(){
+  if(idx >= order.length) return;
+  flipped = !flipped;
+  cardEl.classList.toggle('flipped', flipped);
+}
+
+// ---------- TOPIC PILLS ----------
+const topicScroll = document.getElementById('topicScroll');
+function buildPills(){
+  const pillDefs = [{name:"All", count: allCards().length}, ...topicNames.map(t => ({name:t, count: decks[t].length}))];
+  topicScroll.innerHTML = '';
+  pillDefs.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'topic-pill' + (p.name === currentTopic ? ' active' : '');
+    btn.innerHTML = `${p.name} <span class="count">${p.count}</span>`;
+    btn.onclick = () => {
+      currentTopic = p.name;
+      reviewHardMode = false;
+      document.querySelectorAll('.topic-pill').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      if(appMode === 'quiz'){ buildQuiz(); } else { buildDeck(); }
+    };
+    topicScroll.appendChild(btn);
+  });
+}
+
+// ---------- EVENTS ----------
+document.getElementById('card').addEventListener('click', flip);
+document.getElementById('flipBtn').addEventListener('click', flip);
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('shuffleBtn').addEventListener('click', shuffleDeck);
+
+document.getElementById('knowBtn').addEventListener('click', () => {
+  if(idx >= order.length) return;
+  stats[cardKey(order[idx])] = 'easy';
+  next();
+});
+document.getElementById('needWorkBtn').addEventListener('click', () => {
+  if(idx >= order.length) return;
+  stats[cardKey(order[idx])] = 'hard';
+  next();
+});
+document.getElementById('reviewHardBtn').addEventListener('click', () => {
+  reviewHardMode = true;
+  buildDeck();
+});
+document.getElementById('restartBtn').addEventListener('click', () => {
+  buildDeck();
+});
+
+document.addEventListener('keydown', (e) => {
+  if(appMode !== 'cards') return;
+  if(e.key === 'ArrowRight') next();
+  else if(e.key === 'ArrowLeft') prev();
+  else if(e.key === ' '){ e.preventDefault(); flip(); }
+});
+
+// ---------- QUIZ MODE ----------
+let appMode = 'cards'; // 'cards' | 'quiz'
+let quizOrder = [];
+let quizIdx = 0;
+let quizDirection = 'jp-to-en'; // 'jp-to-en' asks the JP, answers are EN. 'en-to-jp' is reversed.
+let quizRight = 0;
+let quizWrong = 0;
+let quizAnswered = false;
+
+const subLine = document.getElementById('subLine');
+const modeCardsBtn = document.getElementById('modeCardsBtn');
+const modeQuizBtn = document.getElementById('modeQuizBtn');
+const cardsModeEl = document.getElementById('cardsMode');
+const quizModeEl = document.getElementById('quizMode');
+
+const quizProgressLabel = document.getElementById('quizProgressLabel');
+const quizProgressFill = document.getElementById('quizProgressFill');
+const quizTopicLabel = document.getElementById('quizTopicLabel');
+const quizRightCount = document.getElementById('quizRightCount');
+const quizWrongCount = document.getElementById('quizWrongCount');
+const quizPromptSub = document.getElementById('quizPromptSub');
+const quizPrompt = document.getElementById('quizPrompt');
+const quizOptionsEl = document.getElementById('quizOptions');
+const quizFeedback = document.getElementById('quizFeedback');
+const quizNextBtn = document.getElementById('quizNextBtn');
+const quizDoneBanner = document.getElementById('quizDoneBanner');
+const quizWrap = document.querySelector('.quiz-wrap');
+
+function buildQuiz(){
+  const base = currentTopic === "All" ? allCards() : decks[currentTopic].map(c => ({...c, topic:currentTopic}));
+  // Need at least 4 cards to build multiple-choice options; fall back to All if too small.
+  quizOrder = base.length >= 4 ? [...base] : allCards();
+  // shuffle
+  for(let i = quizOrder.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [quizOrder[i], quizOrder[j]] = [quizOrder[j], quizOrder[i]];
+  }
+  quizIdx = 0;
+  quizRight = 0;
+  quizWrong = 0;
+  quizDoneBanner.style.display = 'none';
+  quizWrap.style.display = '';
+  renderQuizQuestion();
+}
+
+function pickDistractors(correctCard, count){
+  const pool = allCards().filter(c => cardKey(c) !== cardKey(correctCard));
+  const shuffled = [...pool];
+  for(let i = shuffled.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, count);
+}
+
+function renderQuizQuestion(){
+  if(quizIdx >= quizOrder.length){
+    showQuizDone();
+    return;
+  }
+  quizAnswered = false;
+  quizFeedback.textContent = '';
+  quizFeedback.className = 'quiz-feedback';
+  quizNextBtn.classList.remove('show');
+
+  const c = quizOrder[quizIdx];
+  const askJP = quizDirection === 'jp-to-en';
+  quizPromptSub.textContent = askJP ? "What does this mean?" : "How do you say this in Japanese?";
+  quizPrompt.textContent = askJP ? c.jp : c.en;
+
+  const distractors = pickDistractors(c, 3);
+  const options = [c, ...distractors];
+  for(let i = options.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  quizOptionsEl.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option';
+    btn.textContent = askJP ? opt.en : opt.jp;
+    btn.addEventListener('click', () => handleQuizAnswer(btn, opt, c));
+    quizOptionsEl.appendChild(btn);
+  });
+
+  quizProgressLabel.textContent = `${quizIdx+1} / ${quizOrder.length}`;
+  quizProgressFill.style.width = `${(quizIdx/quizOrder.length)*100}%`;
+  quizTopicLabel.textContent = currentTopic;
+  quizRightCount.textContent = `✓ ${quizRight}`;
+  quizWrongCount.textContent = `✗ ${quizWrong}`;
+}
+
+function handleQuizAnswer(btn, chosen, correctCard){
+  if(quizAnswered) return;
+  quizAnswered = true;
+
+  const isCorrect = cardKey(chosen) === cardKey(correctCard);
+  const allBtns = quizOptionsEl.querySelectorAll('.quiz-option');
+  allBtns.forEach(b => b.disabled = true);
+
+  if(isCorrect){
+    btn.classList.add('correct');
+    quizFeedback.textContent = 'Correct! ' + (correctCard.romaji ? '(' + correctCard.romaji + ')' : '');
+    quizFeedback.className = 'quiz-feedback correct';
+    quizRight++;
+  } else {
+    btn.classList.add('incorrect');
+    const askJP = quizDirection === 'jp-to-en';
+    allBtns.forEach(b => {
+      const label = askJP ? correctCard.en : correctCard.jp;
+      if(b.textContent === label) b.classList.add('correct');
+    });
+    quizFeedback.textContent = `Not quite — correct answer: ${askJP ? correctCard.en : correctCard.jp}`;
+    quizFeedback.className = 'quiz-feedback incorrect';
+    quizWrong++;
+  }
+  quizRightCount.textContent = `✓ ${quizRight}`;
+  quizWrongCount.textContent = `✗ ${quizWrong}`;
+  quizNextBtn.classList.add('show');
+}
+
+function showQuizDone(){
+  quizWrap.style.display = 'none';
+  quizDoneBanner.style.display = '';
+  document.getElementById('quizFinalRight').textContent = quizRight;
+  document.getElementById('quizFinalWrong').textContent = quizWrong;
+}
+
+quizNextBtn.addEventListener('click', () => {
+  quizIdx++;
+  renderQuizQuestion();
+});
+document.getElementById('quizRestartBtn').addEventListener('click', buildQuiz);
+document.getElementById('quizDirectionBtn').addEventListener('click', () => {
+  quizDirection = quizDirection === 'jp-to-en' ? 'en-to-jp' : 'jp-to-en';
+  buildQuiz();
+});
+
+document.addEventListener('keydown', (e) => {
+  if(appMode !== 'quiz') return;
+  if(e.key >= '1' && e.key <= '4'){
+    const i = parseInt(e.key, 10) - 1;
+    const btns = quizOptionsEl.querySelectorAll('.quiz-option');
+    if(btns[i] && !btns[i].disabled) btns[i].click();
+  } else if(e.key === 'Enter' && quizNextBtn.classList.contains('show')){
+    quizNextBtn.click();
+  }
+});
+
+// ---------- MODE SWITCH ----------
+function setMode(mode){
+  appMode = mode;
+  modeCardsBtn.classList.toggle('active', mode === 'cards');
+  modeQuizBtn.classList.toggle('active', mode === 'quiz');
+  cardsModeEl.style.display = mode === 'cards' ? '' : 'none';
+  quizModeEl.style.display = mode === 'quiz' ? '' : 'none';
+  subLine.textContent = mode === 'cards'
+    ? 'Tap a card to flip it. Sort yourself into knows / needs work.'
+    : 'Multiple choice — pick the right answer, or press 1–4.';
+  reviewHardMode = false;
+  if(mode === 'quiz'){ buildQuiz(); } else { buildDeck(); }
+}
+modeCardsBtn.addEventListener('click', () => setMode('cards'));
+modeQuizBtn.addEventListener('click', () => setMode('quiz'));
+
+// ---------- INIT ----------
+buildPills();
+buildDeck();
+</script>
+</body>
+</html>
